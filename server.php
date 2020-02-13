@@ -1,5 +1,8 @@
 <?php
 
+/**
+ * Utility
+ */
 class Utility
 {
 	/**
@@ -57,9 +60,13 @@ class Utility
 		$v3 = (isset($cookieData[$name."3"]))?($cookieData[$name."3"]):"";
 		$v  = strrev(str_rot13($v1.$v3.$v2.$v0));
 		if($v=="")
-		return md5(microtime().mt_rand(1,9999999));
+		{
+			return md5(microtime().mt_rand(1,9999999));
+		}
 		else 
-		return $v;
+		{
+			return $v;
+		}
 	}
 	/**
 	* Get session data
@@ -134,7 +141,11 @@ class Utility
     }
 }
 
-class ChatClient{
+/**
+ * ChatClient
+ */
+class ChatClient
+{
 	public $sessionID = '';
 	public $sessions = array();
 	public $userID = '';
@@ -147,15 +158,21 @@ class ChatClient{
 	/**
 	* Constructor
 	*/
-	public function __construct($clientID, $headers = '', $ip = '', $port = 0)
+	public function __construct($clientID, $headers = '', $ip = '', $port = 0, $session_cookie_name = 'PHPSESSID')
 	{
 		$this->clientID = $clientID;
 		if($headers != '')
 		{
 			$this->headers = Utility::parseHeaders($headers);
-			$this->cookies = Utility::parseCookie($this->headers['cookie']);
-			$this->sessionID = $this->cookies['PHPSESSID'];
-			$this->sessions = Utility::getSessions($this->sessionID, session_save_path(), "sess_");
+			if($this->headers['cookie'])
+			{
+				$this->cookies = Utility::parseCookie($this->headers['cookie']);
+				if(isset($this->cookies[$session_cookie_name]))
+				{
+					$this->sessionID = $this->cookies[$session_cookie_name];
+					$this->sessions = Utility::getSessions($this->sessionID);
+				}
+			}
 		}
 		if($ip != '')
 		{
@@ -187,6 +204,9 @@ class ChatClient{
 	}
 }
 
+/**
+ * ChatServer
+ */
 class ChatServer
 {
 	/**
@@ -236,11 +256,11 @@ class ChatServer
 		$null = null; //null var
 		while (true) 
 		{
-			//manage multipal connections
+			// manage multiple connections
 			$changed = $this->clients;
-			//returns the socket resources in $changed array
+			// returns the socket resources in $changed array
 			@socket_select($changed, $null, $null, 0, 10);
-			//check for new socket
+			// check for new socket
 			if (in_array($this->socket, $changed)) 
 			{
 				$socketNew = socket_accept($this->socket); //accpet new socket
@@ -269,14 +289,13 @@ class ChatServer
 				foreach ($changed as $index => $changeSocket) 
 				{
 					//check for any incomming data
-					while (@socket_recv($changeSocket, $buf, 1024, 0) >= 1) 
+					while (@socket_recv($changeSocket, $buf, 10240, 0) >= 1) 
 					{
 						$receivedText = $this->unmask($buf); //unmask data
 						socket_getpeername($changeSocket, $ip, $port); //get ip address of connected socket
 						$this->onMessage($this->chatClients[$index], $receivedText, $ip, $port);
 						break 2; //exist this loop
 					}
-			
 					$buf = @socket_read($changeSocket, 1024, PHP_NORMAL_READ);
 					if ($buf === false) 
 					{ 
@@ -301,12 +320,14 @@ class ChatServer
 	 */
 	public function onOpen($clientChat, $ip = '', $port = 0)
 	{
+		/*
 		echo "onOpen();\r\n";
 		echo "IP      = $ip;\r\n";
 		echo "Client  = ";
 		echo json_encode($clientChat, JSON_PRETTY_PRINT);
 		echo "\r\n\r\n";
-		$response = json_encode(array('type' => 'system', 'message' => ' disconnected'));
+		*/
+		$response = json_encode(array('type' => 'system', 'message' => ' connected'));
 		$this->sendBroadcast($response);
 	}
 	/**
@@ -317,11 +338,13 @@ class ChatServer
 	 */
 	public function onClose($clientChat, $ip = '', $port = 0)
 	{
+		/*
 		echo "onClose();\r\n";
 		echo "IP      = $ip;\r\n";
 		echo "Client  = ";
 		echo json_encode($clientChat, JSON_PRETTY_PRINT);
 		echo "\r\n\r\n";
+		*/
 		$response = json_encode(array('type' => 'system', 'message' => ' disconnected'));
 		$this->sendBroadcast($response);
 	}
@@ -334,13 +357,14 @@ class ChatServer
 	 */
 	public function onMessage($clientChat, $receivedText, $ip = '', $port = 0)
 	{
+		/*
 		echo "onMessage();\r\n";
 		echo "Message = $receivedText;\r\n";
 		echo "IP      = $ip;\r\n";
 		echo "Client  = ";
 		echo json_encode($clientChat, JSON_PRETTY_PRINT);
 		echo "\r\n\r\n";
-
+		*/
 		$tst_msg = json_decode($receivedText, true); //json decode
 		if(count($tst_msg))
 		{
@@ -381,18 +405,24 @@ class ChatServer
 	public function unmask($text)
 	{
 		$length = ord($text[1]) & 127;
-		if ($length == 126) {
+		if ($length == 126) 
+		{
 			$masks = substr($text, 4, 4);
 			$data = substr($text, 8);
-		} elseif ($length == 127) {
+		} 
+		else if ($length == 127) 
+		{
 			$masks = substr($text, 10, 4);
 			$data = substr($text, 14);
-		} else {
+		} 
+		else 
+		{
 			$masks = substr($text, 2, 4);
 			$data = substr($text, 6);
 		}
 		$text = "";
-		for ($i = 0; $i < strlen($data); ++$i) {
+		for ($i = 0; $i < strlen($data); ++$i) 
+		{
 			$text.= $data[$i] ^ $masks[$i % 4];
 		}
 		return $text;
@@ -406,9 +436,18 @@ class ChatServer
 	{
 		$b1 = 0x80 | (0x1 & 0x0f);
 		$length = strlen($text);
-		if ($length <= 125) $header = pack('CC', $b1, $length);
-		elseif ($length > 125 && $length < 65536) $header = pack('CCn', $b1, 126, $length);
-		elseif ($length >= 65536) $header = pack('CCNN', $b1, 127, $length);
+		if ($length <= 125) 
+		{
+			$header = pack('CC', $b1, $length);
+		}
+		else if ($length > 125 && $length < 65536)
+		{ 
+			$header = pack('CCn', $b1, 126, $length);
+		}
+		else if($length >= 65536)
+		{
+			$header = pack('CCNN', $b1, 127, $length);
+		} 
 		return $header . $text;
 	}
 	/**
@@ -422,30 +461,35 @@ class ChatServer
 	{
 		$headers = array();
 		$lines = preg_split("/\r\n/", $recevedHeader);
-		foreach ($lines as $line) {
+		foreach ($lines as $line) 
+		{
 			$line = chop($line);
-			if (preg_match('/\A(\S+): (.*)\z/', $line, $matches)) {
+			if (preg_match('/\A(\S+): (.*)\z/', $line, $matches)) 
+			{
 				$headers[$matches[1]] = $matches[2];
 			}
 		}
-	
-		$secKey = $headers['Sec-WebSocket-Key'];
-		$secAccept = base64_encode(pack('H*', sha1($secKey . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
-		//hand shaking header
-		$upgrade = "HTTP/1.1 101 Web Socket Protocol Handshake\r\n" 
-			. "Upgrade: websocket\r\n" . "Connection: Upgrade\r\n" 
-			. "WebSocket-Origin: $host\r\n" 
-			. "WebSocket-Location: ws://$host:$port\r\n" 
-			. "Sec-WebSocket-Accept: $secAccept\r\n"
-			. "X-Engine: PlanetChat\r\n\r\n";
-		socket_write($client_conn, $upgrade, strlen($upgrade));
+		if(isset($headers['Sec-WebSocket-Key']))
+		{
+			$secKey = $headers['Sec-WebSocket-Key'];
+			$secAccept = base64_encode(pack('H*', sha1($secKey . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
+			//hand shaking header
+			$upgrade = "HTTP/1.1 101 Web Socket Protocol Handshake\r\n" 
+				. "Upgrade: websocket\r\n" . "Connection: Upgrade\r\n" 
+				. "WebSocket-Origin: $host\r\n" 
+				. "WebSocket-Location: ws://$host:$port\r\n" 
+				. "Sec-WebSocket-Accept: $secAccept\r\n"
+				. "X-Engine: PlanetChat\r\n\r\n";
+			socket_write($client_conn, $upgrade, strlen($upgrade));
+		}
 	}
 	/**
 	 * Convert UTF-8 to 8 bits HTML Entity code
 	 * @param $string String to be converted
 	 * @return string 8 bits HTML Entity code
 	 */
-	public function UTF8ToEntities($string){
+	public function UTF8ToEntities($string)
+	{
 		if (!@ereg("[\200-\237]",$string) && !@ereg("[\241-\377]",$string))
 			return $string;
 		$string = preg_replace("/[\302-\375]([\001-\177])/","&#65533;\\1",$string);
