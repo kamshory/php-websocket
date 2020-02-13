@@ -125,20 +125,20 @@ class Utility
 	*/
 	public static function sessionDecodeBinary($sessionData) 
 	{
-        $return_data = array();
-        $offset = 0;
-        while ($offset < strlen($sessionData)) 
+		$return_data = array();
+		$offset = 0;
+		while ($offset < strlen($sessionData)) 
 		{
-            $num = ord($sessionData[$offset]);
-            $offset += 1;
-            $varname = substr($sessionData, $offset, $num);
-            $offset += $num;
-            $data = unserialize(substr($sessionData, $offset));
-            $return_data[$varname] = $data;
-            $offset += strlen(serialize($data));
-        }
-        return $return_data;
-    }
+			$num = ord($sessionData[$offset]);
+			$offset += 1;
+			$varname = substr($sessionData, $offset, $num);
+			$offset += $num;
+			$data = unserialize(substr($sessionData, $offset));
+			$return_data[$varname] = $data;
+			$offset += strlen(serialize($data));
+		}
+		return $return_data;
+	}
 }
 
 /**
