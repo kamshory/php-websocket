@@ -229,6 +229,7 @@ class ChatServer
 	 * Client object
 	 */
 	public $chatClients = array();
+	public $maxDataSize = 65536;
 	
 	/**
 	* Constructor
@@ -289,7 +290,7 @@ class ChatServer
 				foreach ($changed as $index => $changeSocket) 
 				{
 					//check for any incomming data
-					while (@socket_recv($changeSocket, $buf, 10240, 0) >= 1) 
+					while (@socket_recv($changeSocket, $buf, $this->maxDataSize, 0) >= 1) 
 					{
 						$receivedText = $this->unmask($buf); //unmask data
 						socket_getpeername($changeSocket, $ip, $port); //get ip address of connected socket
@@ -531,6 +532,7 @@ $host = '127.0.0.1'; //host
 $port = '8889'; //port
 
 $server = new ChatServer($host, $port);
+$server->maxDataSize = 10000;
 $server->run();
 
 
