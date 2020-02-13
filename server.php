@@ -117,7 +117,7 @@ class Utility
 			$offset += strlen(serialize($data));
 		}
 		return $return_data;
-    }
+	}
 	/**
 	* Decode binary session data
 	* @param sessionData Raw session data
