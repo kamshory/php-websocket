@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", function() {
 	const messageInput = document.getElementById('message');
 	const wsUri = document.querySelector('meta[name="websocket"]').getAttribute('content');
 	const username = document.querySelector('meta[name="username"]').getAttribute('content');
+	const chatroom = document.querySelector('meta[name="chatroom"]').getAttribute('content');
 	let websocket;
 
 	function connect() {
@@ -73,7 +74,8 @@ document.addEventListener("DOMContentLoaded", function() {
 		//prepare json data
 		const msg = {
 			message: mymessage,
-			name: username
+			name: username,
+			chatroom: chatroom
 		};
 		//convert and send data to server
 		websocket.send(JSON.stringify(msg));

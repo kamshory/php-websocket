@@ -22,6 +22,8 @@ class ChatClient
 	public $cookies = array();
 	/** @var string The IP address of the client. */
 	public $ip = '';
+	/** @var string The name of the chatroom the client is in. */
+	public $chatroom = '';
 	/** @var int The port of the client connection. */
 	public $port = 0;
 	
@@ -46,7 +48,10 @@ class ChatClient
 				if(isset($this->cookies[$session_cookie_name]))
 				{
 					$this->sessionID = $this->cookies[$session_cookie_name];
-					$this->sessions = Utility::getSessions($this->sessionID);
+                    $this->sessions = Utility::getSessions($this->sessionID);
+                    if ($this->sessions) {
+                        $this->chatroom = $this->sessions['chatroom'] ?? '';
+                    }
 				}
 			}
 		}

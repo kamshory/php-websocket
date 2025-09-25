@@ -133,8 +133,10 @@ class ChatServer
 	 */
 	public function onOpen($clientChat, $ip = '', $port = 0)
 	{
-		$response = json_encode(array('type' => 'system', 'message' => ' connected'));
-		$this->sendBroadcast($response);
+		$username = $clientChat->sessions['username'] ?? 'A user';
+		$chatroom = $clientChat->chatroom;
+		$response = json_encode(array('type' => 'system', 'message' => $username . ' has connected.'));
+		$this->sendBroadcast($response, $chatroom);
 	}
 
 	/**
@@ -146,8 +148,10 @@ class ChatServer
 	 */
 	public function onClose($clientChat, $ip = '', $port = 0)
 	{
-		$response = json_encode(array('type' => 'system', 'message' => ' disconnected'));
-		$this->sendBroadcast($response);
+		$username = $clientChat->sessions['username'] ?? 'A user';
+		$chatroom = $clientChat->chatroom;
+		$response = json_encode(array('type' => 'system', 'message' => $username . ' has disconnected.'));
+		$this->sendBroadcast($response, $chatroom);
 	}
 
 	/**
@@ -164,22 +168,30 @@ class ChatServer
 		if(isset($tstMsg) &&  !empty($tstMsg))
 		{
 			$userName = $tstMsg['name']; //sender name
-			$userMessage = htmlspecialchars($tstMsg['message'], ENT_QUOTES); //message text
+			$userMessage = htmlspecialchars($tstMsg['message'], ENT_QUOTES, 'UTF-8'); //message text
+			$chatroom = $tstMsg['chatroom']; // chatroom
 			$responseText = json_encode(array('type' => 'usermsg', 'name' => $userName, 'message' => $userMessage));
-			$this->sendBroadcast($responseText); //send data
+			$this->sendBroadcast($responseText, $chatroom); //send data
 		}
 	}
 	/**
-	 * Method to send the broadcast message to all client
+	 * Method to send the broadcast message to all clients in a specific room.
 	 * @param string $message Message to send to all clients.
+	 * @param string $chatroom The room to broadcast to.
 	 * @return void
 	 */
-	public function sendBroadcast($message)
+	public function sendBroadcast($message, $chatroom)
 	{
 		$maskedMessage = $this->mask($message);
-		foreach ($this->clients as $changeSocket) 
+		foreach ($this->chatClients as $index => $client) 
 		{
-			@socket_write($changeSocket, $maskedMessage, strlen($maskedMessage));
+			// Send message only to clients in the same chatroom
+			if ($client->chatroom === $chatroom) {
+				$targetSocket = $this->clients[$index];
+				if (isset($targetSocket)) {
+					@socket_write($targetSocket, $maskedMessage, strlen($maskedMessage));
+				}
+			}
 		}
 	}
 
