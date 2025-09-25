@@ -129,7 +129,7 @@ class Utility
 		}
 		return $return_data;
 	}
-    
+
 	/**
 	* Decode binary session data
 	* @param string $sessionData Raw session data
@@ -150,5 +150,54 @@ class Utility
 			$offset += strlen(serialize($data));
 		}
 		return $return_data;
+	}
+
+    /**
+	 * Convert UTF-8 to 8 bits HTML Entity code
+	 * @param string $string String to be converted.
+	 * @return string String with UTF-8 characters converted to HTML numeric entities.
+	 */
+	public static function utf8ToEntities($string)
+	{
+		// Quick check for any non-7-bit ASCII characters. If none, no conversion is needed.
+        // Prefer the modern, safe, and efficient mbstring extension if it's available.
+        if (function_exists('mb_convert_encoding'))
+        {
+            return mb_convert_encoding($string, 'HTML-ENTITIES', 'UTF-8');
+        }
+        else
+        {
+            // Fallback implementation if mbstring is not available.
+            // This replaces the deprecated and insecure preg_replace with the /e modifier.
+            if (!preg_match('/[\x80-\xFF]/', $string)) {
+                return $string;
+            }
+
+            // The following regexes are part of the original logic to handle invalid UTF-8 sequences.
+            $string = preg_replace("/[\302-\375]([\001-\177])/","&#65533;\\1", $string);
+            $string = preg_replace("/[\340-\375].([\001-\177])/","&#65533;\\1", $string);
+            $string = preg_replace("/[\360-\375]..([\001-\177])/","&#65533;\\1", $string);
+            $string = preg_replace("/[\370-\375]...([\001-\177])/","&#65533;\\1", $string);
+            $string = preg_replace("/[\374-\375]....([\001-\177])/","&#65533;\\1", $string);
+            $string = preg_replace("/[\300-\301]./", "&#65533;", $string);
+            $string = preg_replace("/\364[\220-\277]../", "&#65533;", $string);
+            $string = preg_replace("/[\365-\367].../","&#65533;", $string);
+            $string = preg_replace("/[\370-\373]..../","&#65533;", $string);
+            $string = preg_replace("/[\374-\375]...../","&#65533;", $string);
+            $string = preg_replace("/[\376-\377]/","&#65533;", $string);
+            $string = preg_replace("/[\302-\364]{2,}/","&#65533;", $string);
+
+            // Convert valid multi-byte sequences to HTML entities.
+            $string = preg_replace_callback("/([\360-\364])([\200-\277])([\200-\277])([\200-\277])/",
+                function($m) { return '&#' . (((ord($m[1]) & 7) << 18) | ((ord($m[2]) & 63) << 12) | ((ord($m[3]) & 63) << 6) | (ord($m[4]) & 63)) . ';'; }, $string);
+            $string = preg_replace_callback("/([\340-\357])([\200-\277])([\200-\277])/",
+                function($m) { return '&#' . (((ord($m[1]) & 15) << 12) | ((ord($m[2]) & 63) << 6) | (ord($m[3]) & 63)) . ';'; }, $string);
+            $string = preg_replace_callback("/([\300-\337])([\200-\277])/",
+                function($m) { return '&#' . (((ord($m[1]) & 31) << 6) | (ord($m[2]) & 63)) . ';'; }, $string);
+
+            // Replace any remaining invalid bytes.
+            $string = preg_replace("/[\200-\277]/","&#65533;", $string);
+            return $string;
+        }
 	}
 }
