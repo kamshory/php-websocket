@@ -1,60 +1,101 @@
 document.addEventListener("DOMContentLoaded", function() {
-	//create a new WebSocket object.
-	var wsUri = "ws://localhost:8889/chat/server.php";
-	var websocket = new WebSocket(wsUri);
-
 	// Get DOM elements
 	const sendBtn = document.getElementById('send-btn');
 	const messageBox = document.getElementById('message_box');
 	const messageInput = document.getElementById('message');
+	const wsUri = document.querySelector('meta[name="websocket"]').getAttribute('content');
+	const username = document.querySelector('meta[name="username"]').getAttribute('content');
+	let websocket;
 
-	sendBtn.addEventListener('click', function() { //use clicks message send button
+	function connect() {
+		websocket = new WebSocket(wsUri);
+
+		websocket.onopen = function(ev) {
+			displayMessage(`<div class="system_msg">Connected to the server.</div>`);
+		}
+
+		websocket.onmessage = function(ev) {
+			const msg = JSON.parse(ev.data); //PHP sends Json data
+			const type = msg.type; //message type
+			const umsg = msg.message; //message text
+			const uname = msg.name; //user name
+
+			if (type == 'usermsg') {
+				displayMessage(`<div><span class="user_name">${uname}</span> : <span class="user_message">${umsg}</span></div>`);
+			}
+			if (type == 'system') {
+				displayMessage(`<div class="system_msg">${umsg}</div>`);
+			}
+
+			messageInput.value = ''; //reset text
+		};
+
+		websocket.onerror = function(ev) {
+			displayMessage(`<div class="system_error">Error - Connection to the server failed.</div>`);
+		};
+
+		websocket.onclose = function(ev) {
+			displayMessage(`<div class="system_msg">Connection closed. Reconnecting in 3 seconds...</div>`);
+			// Wait 3 seconds before trying to reconnect
+			setTimeout(function() {
+				connect();
+			}, 3000);
+		};
+	}
+
+	// Initial connection
+	connect();
+
+	sendBtn.addEventListener('click', function() {
 		send();
 	});
 
 	document.addEventListener('keyup', function(e) {
-		if (e.key === 'Enter') { // Use 'key' property which is more modern than keyCode
+		// Ensure the user is focused on the message input
+		if (e.key === 'Enter' && document.activeElement === messageInput) {
 			send();
 		}
 	});
 
-	//#### Message received from server?
-	websocket.onmessage = function(ev) {
-		var msg = JSON.parse(ev.data); //PHP sends Json data
-		var type = msg.type; //message type
-		var umsg = msg.message; //message text
-		var uname = msg.name; //user name
-		
-		if(type == 'usermsg')
-		{
-			messageBox.innerHTML += "<div><span class=\"user_name\">"+uname+"</span> : <span class=\"user_message\">"+umsg+"</span></div>";
-		}
-		if(type == 'system')
-		{
-			messageBox.innerHTML += "<div class=\"system_msg\">"+umsg+"</div>";
-		}
-		
-		messageInput.value = ''; //reset text
-	};
-
-	function send()
-	{
-		var mymessage = messageInput.value.trim(); //get message text and trim whitespace
-		
-		if(mymessage == ""){ //emtpy message?
-			alert("Please enter a message.");
+	function send() {
+		const mymessage = messageInput.value.trim();
+		if (mymessage == "") {
+			showAlertModal("Please enter a message.");
 			return;
 		}
-		
+
+		// Check if the websocket is connected
+		if (websocket.readyState !== WebSocket.OPEN) {
+			showAlertModal("Not connected to the server. Please wait.");
+			return;
+		}
+
 		//prepare json data
-		var msg = {
+		const msg = {
 			message: mymessage,
-			name: document.querySelector('meta[name="username"]').getAttribute('content')
+			name: username
 		};
 		//convert and send data to server
 		websocket.send(JSON.stringify(msg));
 	}
 
-	websocket.onerror	= function(ev){ messageBox.innerHTML += "<div class=\"system_error\">Error - "+ev.data+"</div>"; };
-	websocket.onclose 	= function(ev){ messageBox.innerHTML += "<div class=\"system_msg\">Connection closed</div>"; };
+	function displayMessage(message) {
+		// Create a temporary container element to parse the HTML string
+		const tempContainer = document.createElement('div');
+		tempContainer.innerHTML = message;
+
+		// Get the actual message element from the container
+		const messageElement = tempContainer.firstElementChild;
+
+		// Append the new element to the message box to avoid re-parsing the whole container
+		if (messageElement) {
+			messageBox.appendChild(messageElement);
+		}
+		messageBox.scrollTop = messageBox.scrollHeight; // Scroll to the bottom
+	}
+
+	function showAlertModal(message) {
+		document.getElementById('alertModalBody').textContent = message;
+		$('#alertModal').modal('show');
+	}
 });
