@@ -1,0 +1,11 @@
+.container{
+    margin: 10px auto;
+    width: calc(100vw - 20px);
+    box-sizing: border-box;
+    display: block;
+}
+#message_box {
+    min-height: 32px;
+    height: calc(100vh - 144px);
+    overflow-y: scroll;
+}

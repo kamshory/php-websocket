@@ -33,24 +33,20 @@ $wsServerUrl = sprintf("%s://%s%s", $schema, $host, $path);
 <meta charset='UTF-8' />
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="username" content="<?php echo $_SESSION['username'];?>">
+<meta name="chatroom" content="<?php echo $_SESSION['chatroom']; ?>" />
 <meta name="websocket" content="<?php echo $wsServerUrl; ?>" />
 <title>PHP WebSocket Chat</title>
 <!-- Bootstrap 4 CSS -->
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <!-- Custom CSS for chat box -->
-<style>
-	#message_box {
-		height: 400px;
-		overflow-y: scroll;
-	}
-</style>
+ <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<div class="container mt-4">
+<div class="container">
 	<div class="card">
 		<div class="card-header d-flex justify-content-between align-items-center">
-			<span>PHP WebSocket Chat - Welcome <span class="font-weight-bold"><?php echo htmlspecialchars($_SESSION['username']); ?></span></span>
+			<span>Room: <span class="badge badge-info mr-2"><?php echo htmlspecialchars($_SESSION['chatroom']); ?></span> Welcome <span class="font-weight-bold"><?php echo htmlspecialchars($_SESSION['username']); ?></span></span>
 			<a href="index.php?logout=true" class="btn btn-sm btn-outline-secondary">Logout</a>
 		</div>
 		<div class="card-body" id="message_box">
