@@ -100,4 +100,6 @@ document.addEventListener("DOMContentLoaded", function() {
 		document.getElementById('alertModalBody').textContent = message;
 		$('#alertModal').modal('show');
 	}
+
+	document.querySelector('#message').select();
 });

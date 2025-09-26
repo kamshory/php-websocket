@@ -11,7 +11,7 @@ class ChatServer
 	/**
 	 * @var string Server host IP address.
 	 */
-	public $host = '127.0.0.1';
+	public $host = '0.0.0.1';
 	/**
 	 * @var int Server port number.
 	 */
